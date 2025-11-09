@@ -1,0 +1,850 @@
+{
+  "name": "Medium Article Publishing with Metadata and Image Generation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "article-workflow",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "87419b91-a006-4faa-954d-3d202da40fa0",
+      "name": "Receive Raw Thoughts",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -4432,
+        1840
+      ],
+      "webhookId": "9955c320-a977-4588-9123-27b381196f01"
+    },
+    {
+      "parameters": {
+        "operation": "message"
+      },
+      "id": "301219f3-fd3e-4bc6-ac1e-a9a56e32009b",
+      "name": "Generate Metadata",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        -1776,
+        1600
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "message"
+      },
+      "id": "923a5665-7cea-40f0-9364-065538b91815",
+      "name": "Create LinkedIn Engagement Post",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        -1424,
+        1600
+      ]
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {}
+      },
+      "id": "3c095e23-fdb8-49eb-887c-436f71915d22",
+      "name": "Wait for Metadata Review",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -1072,
+        1600
+      ],
+      "webhookId": "33cbaa50-c49d-4184-8dd7-8c6e441a23c3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.metadataApproved }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8b659200-78c9-48e7-a0d3-87869c28837b",
+      "name": "Metadata Review Decision",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -880,
+        1680
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "message"
+      },
+      "id": "376c86d7-18f5-4b56-9a16-e8eb15b1acbc",
+      "name": "Extract Visual Moments",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        -2832,
+        1984
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "message"
+      },
+      "id": "a2b2f2eb-16a5-4f3b-b284-9058f828438c",
+      "name": "Define Art Style",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        -2480,
+        1984
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "message"
+      },
+      "id": "9e636ae9-4722-4686-b15a-1f7ae2c1d8dc",
+      "name": "Create Image Prompts",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        -2128,
+        1984
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Parse the JSON array from the previous node\nconst imagePrompts = $input.item.json.imagePrompts;\n\n// If imagePrompts is a string, parse it as JSON\nconst promptsArray = typeof imagePrompts === 'string' ? JSON.parse(imagePrompts) : imagePrompts;\n\n// Ensure we have an array\nif (!Array.isArray(promptsArray)) {\n  throw new Error('imagePrompts is not an array');\n}\n\n// Return each item with all metadata (prompt, caption, altText, placement)\nreturn promptsArray.map(item => ({\n  json: {\n    prompt: item.prompt || item.imagePrompt || '',\n    caption: item.caption || '',\n    altText: item.altText || item.alt || '',\n    placement: item.placement || item.position || 'full-width',\n    description: item.description || '',\n    previewStyle: item.previewStyle || item.style || 'full-width'\n  }\n}));"
+      },
+      "id": "2f846c19-0b15-48d9-bd26-2b931df7bd16",
+      "name": "Split Image Prompts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1760,
+        1984
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "prompt": "={{ $json.prompt }}",
+        "options": {
+          "dalleQuality": "hd",
+          "size": "1024x1024"
+        }
+      },
+      "id": "814a227a-e6b0-4410-93b5-4e029f19d137",
+      "name": "Generate Images",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        -1376,
+        1920
+      ]
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {
+          "responseData": "={{ $json }}"
+        }
+      },
+      "id": "840e4d44-1c0c-4e71-b47d-2c2ea7f20e28",
+      "name": "Wait for Image Review",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -1072,
+        1920
+      ],
+      "webhookId": "684b4041-dc03-42b2-9a08-b3323032355b"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.imagesApproved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3a875dbd-5f75-488a-94ea-8d51e2299d65",
+      "name": "Image Review Decision",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -880,
+        1984
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "b0bca6eb-f933-4ab3-b371-1aa7d3f53694",
+      "name": "Merge Metadata and Images",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -624,
+        1840
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Assemble Article - Combine metadata and images into final Medium-ready format\n\n/**\n * EXPECTED INPUT STRUCTURE FROM MERGE NODE:\n * \n * Input 1 (Metadata Branch):\n * {\n *   \"title\": \"Article Title\",\n *   \"subtitle\": \"Article Subtitle\",\n *   \"tags\": [\"tag1\", \"tag2\", \"tag3\"],\n *   \"canonicalUrl\": \"https://example.com/original\",\n *   \"publishStatus\": \"draft\" | \"public\",\n *   \"linkedInPost\": \"LinkedIn engagement post text\",\n *   \"content\": \"Full article body with markdown formatting...\",\n *   \"body\": \"Alternative field for article content\"\n * }\n * \n * Input 2 (Image Branch):\n * {\n *   \"images\": [\n *     {\n *       \"url\": \"https://image-url.com/image1.png\",\n *       \"imageUrl\": \"Alternative field for image URL\",\n *       \"caption\": \"Image caption text\",\n *       \"description\": \"Alternative field for caption\",\n *       \"previewStyle\": \"hero\" | \"full-width\" | \"inset\" | \"side-by-side\"\n *     },\n *     { ... more images ... }\n *   ]\n * }\n * \n * EXAMPLE OUTPUT FORMAT:\n * {\n *   \"title\": \"Article Title\",\n *   \"contentFormat\": \"html\",\n *   \"content\": \"<h1>Title</h1>\\n<h2>Subtitle</h2>\\n<p>Paragraph...</p>\\n<figure class='full-width-image'>\\n  <img src='...' alt='...' />\\n  <figcaption>Caption</figcaption>\\n</figure>\\n...\",\n *   \"tags\": [\"tag1\", \"tag2\", \"tag3\"],\n *   \"canonicalUrl\": \"https://example.com/original\",\n *   \"publishStatus\": \"draft\",\n *   \"metadata\": {\n *     \"subtitle\": \"Article Subtitle\",\n *     \"linkedInPost\": \"LinkedIn post text\",\n *     \"imageCount\": 3,\n *     \"wordCount\": 1250\n *   }\n * }\n */\n\nconst metadataInput = $input.first();\nconst imagesInput = $input.last();\n\n// Extract metadata from first input\nconst metadata = metadataInput.json;\nconst title = metadata.title || 'Untitled Article';\nconst subtitle = metadata.subtitle || '';\nconst tags = metadata.tags || [];\nconst canonicalUrl = metadata.canonicalUrl || '';\nconst publishStatus = metadata.publishStatus || 'draft';\nconst linkedInPost = metadata.linkedInPost || '';\n\n// Extract images from second input\nconst images = imagesInput.json.images || [];\n\n// Build the article content in Medium HTML format\nlet content = '';\n\n// Add title and subtitle\nif (title) {\n  content += `<h1>${title}</h1>\\n`;\n}\nif (subtitle) {\n  content += `<h2>${subtitle}</h2>\\n`;\n}\n\n// Get the article body from metadata\nconst articleBody = metadata.content || metadata.body || '';\n\n// Split article into sections (by paragraphs or headings)\nconst sections = articleBody.split(/\\n\\n+/);\n\n// Calculate image placement based on preview styles\nconst totalSections = sections.length;\nconst totalImages = images.length;\n\n// Distribute images throughout the article\nlet imageIndex = 0;\nconst imageInterval = Math.floor(totalSections / (totalImages + 1));\n\nfor (let i = 0; i < sections.length; i++) {\n  const section = sections[i].trim();\n  \n  if (section) {\n    // Check if section is a heading\n    if (section.startsWith('#')) {\n      const headingLevel = section.match(/^#+/)[0].length;\n      const headingText = section.replace(/^#+\\s*/, '');\n      content += `<h${headingLevel}>${headingText}</h${headingLevel}>\\n`;\n    } else {\n      content += `<p>${section}</p>\\n`;\n    }\n  }\n  \n  // Insert image at calculated intervals\n  if (imageIndex < totalImages && (i + 1) % imageInterval === 0 && i < totalSections - 1) {\n    const image = images[imageIndex];\n    const imageUrl = image.url || image.imageUrl || '';\n    const imageCaption = image.caption || image.description || '';\n    const previewStyle = image.previewStyle || 'full-width';\n    \n    if (imageUrl) {\n      // Apply preview style as figure class or inline style\n      let figureClass = '';\n      switch (previewStyle) {\n        case 'hero':\n          figureClass = 'hero-image';\n          break;\n        case 'full-width':\n          figureClass = 'full-width-image';\n          break;\n        case 'inset':\n          figureClass = 'inset-image';\n          break;\n        case 'side-by-side':\n          figureClass = 'side-by-side-image';\n          break;\n        default:\n          figureClass = 'full-width-image';\n      }\n      \n      content += `<figure class=\"${figureClass}\">\\n`;\n      content += `  <img src=\"${imageUrl}\" alt=\"${imageCaption}\" />\\n`;\n      if (imageCaption) {\n        content += `  <figcaption>${imageCaption}</figcaption>\\n`;\n      }\n      content += `</figure>\\n`;\n    }\n    \n    imageIndex++;\n  }\n}\n\n// Add any remaining images at the end\nwhile (imageIndex < totalImages) {\n  const image = images[imageIndex];\n  const imageUrl = image.url || image.imageUrl || '';\n  const imageCaption = image.caption || image.description || '';\n  const previewStyle = image.previewStyle || 'full-width';\n  \n  if (imageUrl) {\n    let figureClass = previewStyle === 'hero' ? 'hero-image' : 'full-width-image';\n    content += `<figure class=\"${figureClass}\">\\n`;\n    content += `  <img src=\"${imageUrl}\" alt=\"${imageCaption}\" />\\n`;\n    if (imageCaption) {\n      content += `  <figcaption>${imageCaption}</figcaption>\\n`;\n    }\n    content += `</figure>\\n`;\n  }\n  \n  imageIndex++;\n}\n\n// Prepare final article object for Medium API\nconst assembledArticle = {\n  title: title,\n  contentFormat: 'html',\n  content: content,\n  tags: tags,\n  canonicalUrl: canonicalUrl,\n  publishStatus: publishStatus,\n  metadata: {\n    subtitle: subtitle,\n    linkedInPost: linkedInPost,\n    imageCount: totalImages,\n    wordCount: articleBody.split(/\\s+/).length\n  }\n};\n\nreturn [{ json: assembledArticle }];"
+      },
+      "id": "645bfefc-80e6-452f-9d97-d6a81b7ccf96",
+      "name": "Assemble Article",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        1840
+      ]
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {
+          "responseData": "={{ $json }}"
+        }
+      },
+      "id": "9aefa4e6-04b4-436b-91c6-62fa226000d9",
+      "name": "Wait for Final Review",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -176,
+        1776
+      ],
+      "webhookId": "a289c1ed-99bd-44db-92b1-aeb27c461f46"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.finalApproved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "73283710-c06d-4265-b268-81f97507439b",
+      "name": "Final Review Decision",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        48,
+        1840
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Workflow Configuration').first().json.mediumApiUrl }}/users/{{ $json.authorId }}/posts",
+        "authentication": "predefinedCredentialType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "title",
+              "value": "={{ $json.title }}"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.content }}"
+            },
+            {
+              "name": "tags",
+              "value": "={{ $json.tags }}"
+            },
+            {
+              "name": "publishStatus",
+              "value": "={{ $json.publishStatus }}"
+            }
+          ]
+        },
+        "options": {},
+        "infoMessage": "Expected response format from Medium API: {\"data\": {\"id\": \"abc123\", \"title\": \"...\", \"url\": \"https://medium.com/@user/article-slug\", \"publishStatus\": \"draft\"}}"
+      },
+      "id": "95006b6d-0f46-45db-9438-aa5c2d3950c1",
+      "name": "Publish to Medium",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        272,
+        1840
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Article published successfully\",\n  \"articleUrl\": \"={{ $('Publish to Medium').item.json.data.url }}\"\n}",
+        "options": {}
+      },
+      "id": "65f10d51-d14b-42f9-a30d-1e1bfea67274",
+      "name": "Send Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        496,
+        1840
+      ]
+    },
+    {
+      "parameters": {
+        "content": "INGESTION PHASE\n\nReceive raw thoughts via webhook and normalize into structured format"
+      },
+      "id": "8ecbc9b2-2280-4c19-b578-bf7d29c121e6",
+      "name": "Ingestion Phase",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -4464,
+        1632
+      ]
+    },
+    {
+      "parameters": {
+        "content": "METADATA BRANCH\n\nGenerate title, subtitle, topics, hashtags\nCreate LinkedIn engagement post\nOptional human review"
+      },
+      "id": "ed39fbde-1b42-4793-9cc6-78a6971dc6e7",
+      "name": "Metadata Branch",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1808,
+        1472
+      ]
+    },
+    {
+      "parameters": {
+        "content": "IMAGE BRANCH\n\nExtract visual moments\nDefine coherent art style\nGenerate prompts & create 2 variants per slot\nHuman selection/feedback"
+      },
+      "id": "2997b02b-ca31-4f48-bf71-bafa24187b45",
+      "name": "Image Branch",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2848,
+        2192
+      ]
+    },
+    {
+      "parameters": {
+        "content": "ASSEMBLY & PUBLISHING\n\nMerge text + metadata + images\nApply preview styles\nFinal approval gate\nPublish to Medium"
+      },
+      "id": "75d520b9-d90e-4006-acde-41c171be6f16",
+      "name": "Assembly & Publishing",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        2016
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -3072,
+        1824
+      ],
+      "id": "5491d4c1-0bdb-499b-8c85-36da4698d82f",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "content": "DRAFTING PHASE\n\nProduce Draft v0 in Medium style\nHuman review checkpoint with revision loop"
+      },
+      "id": "cda86b48-2332-4a36-b1ff-ec2de2f22cca",
+      "name": "Drafting Phase",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -3728,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "34b29e72-fcd7-47a2-9f4b-d998f64ab344",
+      "name": "Review Decision",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3264,
+        1840
+      ]
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {}
+      },
+      "id": "83122c83-b49d-4d20-b266-6f7c025f4ef8",
+      "name": "Wait for Human Review",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -3440,
+        1744
+      ],
+      "webhookId": "62d0d4c5-7e51-440e-bf91-c6178a75d6bb"
+    },
+    {
+      "parameters": {
+        "resource": "conversation",
+        "messages": {
+          "values": [
+            {
+              "role": "assistant"
+            }
+          ]
+        },
+        "options": {
+          "metadata": "{}"
+        }
+      },
+      "id": "eda0c5fd-e1f6-4023-9310-a4cc747835f2",
+      "name": "Produce Draft v0",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        -3632,
+        1840
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "message"
+      },
+      "id": "732362f6-a46a-46c4-8a79-db301a7e045a",
+      "name": "Normalize & Structure Input",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        -3984,
+        1840
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "mediumApiUrl",
+              "value": "https://api.medium.com/v1",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "maxImageVariants",
+              "value": 2,
+              "type": "number"
+            },
+            {
+              "id": "id-3",
+              "name": "maxSubtitleLength",
+              "value": 140,
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "2a5f6f2a-9169-4c5d-97c2-dff93005fe85",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4208,
+        1840
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Receive Raw Thoughts": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Metadata": {
+      "main": [
+        [
+          {
+            "node": "Create LinkedIn Engagement Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create LinkedIn Engagement Post": {
+      "main": [
+        [
+          {
+            "node": "Wait for Metadata Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Metadata Review": {
+      "main": [
+        [
+          {
+            "node": "Metadata Review Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Metadata Review Decision": {
+      "main": [
+        [
+          {
+            "node": "Merge Metadata and Images",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Visual Moments": {
+      "main": [
+        [
+          {
+            "node": "Define Art Style",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Define Art Style": {
+      "main": [
+        [
+          {
+            "node": "Create Image Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Image Prompts": {
+      "main": [
+        [
+          {
+            "node": "Split Image Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Image Prompts": {
+      "main": [
+        [
+          {
+            "node": "Generate Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Images": {
+      "main": [
+        [
+          {
+            "node": "Wait for Image Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Image Review": {
+      "main": [
+        [
+          {
+            "node": "Image Review Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Review Decision": {
+      "main": [
+        [
+          {
+            "node": "Merge Metadata and Images",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Generate Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Metadata and Images": {
+      "main": [
+        [
+          {
+            "node": "Assemble Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Article": {
+      "main": [
+        [
+          {
+            "node": "Wait for Final Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Final Review": {
+      "main": [
+        [
+          {
+            "node": "Final Review Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final Review Decision": {
+      "main": [
+        [
+          {
+            "node": "Publish to Medium",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Assemble Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish to Medium": {
+      "main": [
+        [
+          {
+            "node": "Send Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review Decision": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Normalize & Structure Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Human Review": {
+      "main": [
+        [
+          {
+            "node": "Review Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Produce Draft v0": {
+      "main": [
+        [
+          {
+            "node": "Wait for Human Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize & Structure Input": {
+      "main": [
+        [
+          {
+            "node": "Produce Draft v0",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Normalize & Structure Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Operation, do nothing": {
+      "main": [
+        [
+          {
+            "node": "Extract Visual Moments",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0b1fda46-8ebf-42f9-8db0-44a030a70278",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "21fe9be77c5d81f2fca4f63de85c7ce9ce49d873e9b3a0d977527699ea349ab9"
+  },
+  "id": "9Yr98V39PWvxxw4h",
+  "tags": []
+}
